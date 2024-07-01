@@ -305,7 +305,34 @@ func IsPodAvailable(pod *v1.Pod, minReadySeconds int32, now metav1.Time) bool {
 
 // IsPodReady returns true if a pod is ready; false otherwise.
 func IsPodReady(pod *v1.Pod) bool {
-	return IsPodReadyConditionTrue(pod.Status)
+	return IsPodReadyConditionTrue(pod.Status) && ArePodReadinessGatesTrue(pod)
+}
+
+// ArePodReadinessGatesTrue returns true if all readiness gates return true; false otherwise.
+func ArePodReadinessGatesTrue(pod *v1.Pod) bool {
+	if pod.Spec.ReadinessGates == nil {
+		return false
+	}
+
+	for _, readinessGate := range pod.Spec.ReadinessGates {
+		if !IsPodReadinessGateConditionTrue(readinessGate.ConditionType, pod.Status) {
+			return false
+		}
+	}
+	return true
+}
+
+// IsPodReadinessGateConditionTrue returns true if the provided readiness gate
+// contition exists and is true; false otherwise.
+func IsPodReadinessGateConditionTrue(conditionType v1.PodConditionType, status v1.PodStatus) bool {
+	index, condition := GetPodCondition(&status, conditionType)
+	if index == -1 {
+		return false
+	}
+	if condition != nil && condition.Status == v1.ConditionTrue {
+		return true
+	}
+	return false
 }
 
 // IsPodTerminal returns true if a pod is terminal, all containers are stopped and cannot ever regress.
