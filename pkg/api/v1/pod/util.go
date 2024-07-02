@@ -305,13 +305,14 @@ func IsPodAvailable(pod *v1.Pod, minReadySeconds int32, now metav1.Time) bool {
 
 // IsPodReady returns true if a pod is ready; false otherwise.
 func IsPodReady(pod *v1.Pod) bool {
-	return IsPodReadyConditionTrue(pod.Status) && ArePodReadinessGatesTrue(pod)
+	return IsPodReadyConditionTrue(pod.Status)
 }
 
 // ArePodReadinessGatesTrue returns true if all readiness gates return true; false otherwise.
 func ArePodReadinessGatesTrue(pod *v1.Pod) bool {
+	// if there are no readiness gates, then return true.
 	if pod.Spec.ReadinessGates == nil {
-		return false
+		return true
 	}
 
 	for _, readinessGate := range pod.Spec.ReadinessGates {
